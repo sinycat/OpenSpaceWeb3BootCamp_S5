@@ -32,4 +32,5 @@ def pow_with_difficulty(difficulty):
 
 
 # pow_with_difficulty(5)
-pow_with_difficulty(6)
+# pow_with_difficulty(6)
+pow_with_difficulty(7)
