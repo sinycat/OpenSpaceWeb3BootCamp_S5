@@ -1,7 +1,7 @@
 import hashlib
 import time
 
-
+# hash difficulty
 def pow_with_difficulty(difficulty):
     base_string = "sinycat"
     nonce = 0
@@ -21,7 +21,6 @@ def pow_with_difficulty(difficulty):
         if hex_dig.startswith('0' * difficulty):
             end_time = time.time()
             elapsed_time = end_time - start_time
-            print(f"找到满足 {difficulty} 个 0 开头的哈希值：")
             print(f"找到满足 {difficulty} 个 0 开头的哈希值：")
             print(f"花费时间: {elapsed_time} 秒")
             print(f"Hash 的内容: {data}")
