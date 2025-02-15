@@ -1,1 +1,2 @@
-https://sepolia.etherscan.io/token/0x282610500fa6ac670c790723b18fd0e575e3a7f4
+ERC20代币部署地址:	https://sepolia.etherscan.io/token/0x282610500fa6ac670c790723b18fd0e575e3a7f4
+TokenBank部署地址:	https://sepolia.etherscan.io/address/0x482700de4c7486af6ea6625c010b7842fb2f8892
