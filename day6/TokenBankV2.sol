@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+// 合约已部署到sepolia测试网 合约地址: 0x1341E37e8347147280D2F52e04AD415fA9d08651
+// 增加 tokensReceived函数，用于接收带回调的 Token 转账
 pragma solidity ^0.8.20;
 
 // 导入 ERC20 接口
@@ -9,7 +11,17 @@ interface IERC20 {
     function approve(address spender, uint256 value) external returns (bool);
 }
 
-contract TokenBank {
+// 添加 Token 接收者接口
+interface ITokenReceiver {
+    function tokensReceived(
+        address operator,
+        address from,
+        uint256 amount,
+        bytes calldata data
+    ) external returns (bool);
+}
+
+contract TokenBank is ITokenReceiver {
     // 记录每个用户在每个代币合约中的存款余额
     mapping(address => mapping(address => uint256)) public balances;
     
@@ -18,7 +30,23 @@ contract TokenBank {
     // 提款事件
     event Withdrawal(address indexed user, address indexed token, uint256 amount);
     
-    // 存款函数
+    // 实现 tokensReceived 接口，用于接收带回调的 Token 转账
+    function tokensReceived(
+        address /* operator */,  // 使用注释标记未使用的参数
+        address from,
+        uint256 amount,
+        bytes calldata /* data */  // 使用注释标记未使用的参数
+    ) external override returns (bool) {
+        // 更新用户在该代币的存款余额
+        balances[from][msg.sender] += amount;
+        
+        // 触发存款事件
+        emit Deposit(from, msg.sender, amount);
+        
+        return true;
+    }
+    
+    // 原有存款函数保持不变，用于普通 ERC20 存款
     function deposit(address _tokenAddress, uint256 _amount) external {
         require(_tokenAddress != address(0), "Invalid token address");
         require(_amount > 0, "Amount must be greater than 0");
