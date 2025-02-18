@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT 
-// 合约已部署到sepolia测试网 合约地址: 0x74047b8eAAA6486de7C63d7147ab5c09f4Bd0446
-// 增加 increaseAllowance函数 用于向其他带tokensReceived函数的合约一次性转账
+// 
+// 增加 transferWithCallback 用于向其他带tokensReceived函数的合约一次性转账
 pragma solidity ^0.8.20;
 
 // 定义接收代币的接口
@@ -14,7 +14,16 @@ interface ITokenReceiver {
 }
 
 // ERC20基础合约
-contract BaseERC20 {
+contract MyERC20 {
+    // 添加重入保护
+    bool private _locked;
+    modifier nonReentrant() {
+        require(!_locked, "ReentrancyGuard: reentrant call");
+        _locked = true;
+        _;
+        _locked = false;
+    }
+
     // 代币名称
     string public name;
     // 代币符号
@@ -40,8 +49,8 @@ contract BaseERC20 {
 
     constructor() {
         // 初始化代币基本信息
-        name = "BaseERC20"; // 设置代币名称
-        symbol = "BERC20"; // 设置代币符号
+        name = "MyERC20"; // 设置代币名称
+        symbol = "ERC20_OK"; // 设置代币符号
         decimals = 18; // 设置小数位数为18
         totalSupply = 100000000 * (10 ** uint256(decimals)); // 设置总供应量为1亿
         balances[msg.sender] = totalSupply; // 初始供应量全部分配给合约部署者
@@ -176,32 +185,27 @@ contract BaseERC20 {
         return true;
     }
 
-    // 带回调的转账函数
+    // 转账带回调函数 - 添加重入保护，调整执行顺序
     function transferWithCallback(
         address _to,
-        uint256 _value
+        uint256 _value,
+        bytes calldata _data
     )
         public
+        nonReentrant
         validAddress(_to)
         validAmount(_value)
         hasEnoughBalance(msg.sender, _value)
         returns (bool success)
     {
-        // 执行转账
-        balances[msg.sender] -= _value;
-        balances[_to] += _value;
-
-        // 触发转账事件
-        emit Transfer(msg.sender, _to, _value);
-
-        // 如果接收方是合约，调用其 tokensReceived 方法
+        // 如果接收方是合约，先进行回调
         if (_isContract(_to)) {
             try
                 ITokenReceiver(_to).tokensReceived(
-                    msg.sender, // operator
-                    msg.sender, // from
-                    _value, // amount
-                    "" // 附加数据
+                    msg.sender,
+                    msg.sender,
+                    _value,
+                    _data
                 )
             returns (bool callbackSuccess) {
                 require(callbackSuccess, "Callback failed");
@@ -210,11 +214,18 @@ contract BaseERC20 {
             }
         }
 
+        // 回调成功后再执行转账
+        balances[msg.sender] -= _value;
+        balances[_to] += _value;
+
+        // 触发转账事件
+        emit Transfer(msg.sender, _to, _value);
+
         return true;
     }
 
-    // 检查地址是否为合约
-    function _isContract(address _addr) internal view returns (bool) {
+    // 内部辅助函数确保为 private
+    function _isContract(address _addr) private view returns (bool) {
         uint256 size;
         assembly {
             size := extcodesize(_addr)

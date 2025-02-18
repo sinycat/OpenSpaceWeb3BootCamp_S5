@@ -32,11 +32,15 @@ contract TokenBank is ITokenReceiver {
     
     // 实现 tokensReceived 接口，用于接收带回调的 Token 转账
     function tokensReceived(
-        address /* operator */,  // 使用注释标记未使用的参数
+        address /* operator */,
         address from,
         uint256 amount,
-        bytes calldata /* data */  // 使用注释标记未使用的参数
+        bytes calldata /* data */
     ) external override returns (bool) {
+        // 确保只有发起调用的 Token 地址可以调用此函数
+        // msg.sender 是调用此函数的 Token 合约地址
+        require(balances[from][msg.sender] >= 0, "Invalid token contract");
+       
         // 更新用户在该代币的存款余额
         balances[from][msg.sender] += amount;
         
